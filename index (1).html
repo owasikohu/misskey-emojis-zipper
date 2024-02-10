@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>misskey-emojis-zipper</title>
+<font size="7">misskey-emojis-zipper</font>
+<br>
+<body>
+    misskeyでは絵文字を一度に複数追加するには、meta.jsonが入ったzipが必要です。
+    <br>
+    このツールはインポートされた画像からmeta.jsonを自動で生成し、zipに圧縮しダウンロードします。オフラインで動作します。
+    <br>
+    <input type="file" id="fileInput" multiple accept="image/*">
+    <input type="text" id="categoryInput" placeholder="カテゴリ名を入力">
+    <button onclick="createZip()">ZIPを作成</button>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.5/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/1.3.8/FileSaver.min.js"></script>
+</body>
+</html>
+
+  
+  <script>
+    async function createZip() {
+    const fileInput = document.getElementById('fileInput');
+    const categoryInput = document.getElementById('categoryInput');
+    const files = fileInput.files;
+    const category = categoryInput.value;
+
+    if(files.length === 0) {
+        alert('画像を選択してください。');
+        return;
+    }
+
+    if(category === '') {
+        alert('カテゴリ名を入力してください。');
+        return;
+    }
+
+    let zip = new JSZip();
+    let emojis = [];
+
+    for(let i = 0; i < files.length; i++) {
+        let file = files[i];
+        let blob = await file.arrayBuffer();
+        zip.file(file.name, blob);
+        emojis.push({
+            "downloaded": true,
+            "fileName": file.name,
+            "emoji": {
+                "name": file.name.split('.').slice(0, -1).join('.'),
+                "category": category,
+                "aliases": []
+            }
+        });
+    }
+
+    let jsonBlob = new Blob([JSON.stringify({ "emojis": emojis }, null, 2)], {type : 'application/json'});
+    zip.file('meta.json', jsonBlob);
+
+    zip.generateAsync({type:"blob"}).then(function(content) {
+        saveAs(content, "emoji.zip");
+    });
+}
+
+</script>
+</body>
+</html>
